@@ -892,7 +892,14 @@ class XMLSecurityDSig {
                                 foreach ($pfxlist AS $pfx) {
                                     $val = trim($pfx);
                                     if (! empty($val)) {
-                                        $arpfx[] = $val;
+                                        // Validate actual use of the namespace
+					$xml    = $objData->ownerDocument->saveXML($objData);
+					$regex  = $val === '#default' ? "/<[^>:]>/" : "/<$val:[^>]+>/";
+					$used   = preg_match($regex, $xml);
+
+					if($used) {
+					    $arpfx[] = $val;
+					}
                                     }
                                 }
                                 if (count($arpfx) > 0) {
