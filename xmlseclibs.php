@@ -859,7 +859,7 @@ class XMLSecurityDSig {
         return ($digValue == $digestValue);
     }
 
-    public function processTransforms($refNode, $objData, $includeCommentNodes = TRUE) {
+    public function processTransforms($refNode, $objData, $includeCommentNodes = TRUE, $onlyValidateUsedNamespaces = true) {
         $data = $objData;
         $xpath = new DOMXPath($refNode->ownerDocument);
         $xpath->registerNamespace('secdsig', XMLSecurityDSig::XMLDSIGNS);
@@ -893,13 +893,13 @@ class XMLSecurityDSig {
                                     $val = trim($pfx);
                                     if (! empty($val)) {
                                         // Validate actual use of the namespace
-					$xml    = $objData->ownerDocument->saveXML($objData);
-					$regex  = $val === '#default' ? "/<[^>:]>/" : "/<$val:[^>]+>/";
-					$used   = preg_match($regex, $xml);
+                                        $xml    = $objData->ownerDocument->saveXML($objData);
+                                        $regex  = $val === '#default' ? "/<[^>:]>/" : "/<$val:[^>]+>/";
+                                        $used   = preg_match($regex, $xml);
 
-					if($used) {
-					    $arpfx[] = $val;
-					}
+                                        if($used || !$onlyValidateUsedNamespaces) {
+                                            $arpfx[] = $val;
+                                        }
                                     }
                                 }
                                 if (count($arpfx) > 0) {
@@ -996,8 +996,10 @@ class XMLSecurityDSig {
 
             $dataObject = $refNode->ownerDocument;
         }
-        $data = $this->processTransforms($refNode, $dataObject, $includeCommentNodes);
-        if (!$this->validateDigest($refNode, $data)) {
+        $dataOfUsedNamespaces = $this->processTransforms($refNode, $dataObject, $includeCommentNodes, true);
+        $dataOfAllNamespaces = $this->processTransforms($refNode, $dataObject, $includeCommentNodes, false);
+        if (!$this->validateDigest($refNode, $dataOfUsedNamespaces)
+            && !$this->validateDigest($refNode, $dataOfAllNamespaces)) {
             return FALSE;
         }
 
